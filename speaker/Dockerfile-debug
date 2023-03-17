@@ -75,4 +75,4 @@ LABEL org.opencontainers.image.authors="metallb" \
   org.opencontainers.image.title="speaker" \
   org.opencontainers.image.base.name="docker.io/alpine:latest"
 
-ENTRYPOINT ["/dlv", "--listen=:40000", "--accept-multiclient", "--continue", "--api-version=2", "exec", "/speaker", "--"]
+ENTRYPOINT ["/dlv", "--listen=:40000", "--continue", "--accept-multiclient", "--headless=true", "--api-version=2", "exec", "/speaker", "--"]
