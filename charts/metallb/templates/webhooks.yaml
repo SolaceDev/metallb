@@ -145,6 +145,26 @@ webhooks:
     resources:
     - l2advertisements
   sideEffects: None
+- admissionReviewVersions:
+    - v1
+  clientConfig:
+    service:
+      name: metallb-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-metallb-io-v1beta1-awsadvertisement
+  failurePolicy: {{ .Values.crds.validationFailurePolicy }}
+  name: awsadvertisementvalidationwebhook.metallb.io
+  rules:
+  - apiGroups:
+      - metallb.io
+    apiVersions:
+      - v1beta1
+    operations:
+      - CREATE
+      - UPDATE
+    resources:
+      - awsadvertisements
+  sideEffects: None
 ---
 apiVersion: v1
 kind: Service

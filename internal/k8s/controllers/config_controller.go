@@ -87,6 +87,12 @@ var requestHandler = func(r *ConfigReconciler, ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	var awsAdvertisements metallbv1beta1.AWSAdvertisementList
+	if err := r.List(ctx, &awsAdvertisements, client.InNamespace(r.Namespace)); err != nil {
+		level.Error(r.Logger).Log("controller", "ConfigReconciler", "message", "failed to get aws advertisements", "error", err)
+		return ctrl.Result{}, err
+	}
+
 	var bgpAdvertisements metallbv1beta1.BGPAdvertisementList
 	if err := r.List(ctx, &bgpAdvertisements, client.InNamespace(r.Namespace)); err != nil {
 		level.Error(r.Logger).Log("controller", "ConfigReconciler", "message", "failed to get bgp advertisements", "error", err)
@@ -122,6 +128,7 @@ var requestHandler = func(r *ConfigReconciler, ctx context.Context, req ctrl.Req
 		BFDProfiles:        bfdProfiles.Items,
 		L2Advs:             l2Advertisements.Items,
 		BGPAdvs:            bgpAdvertisements.Items,
+		AWSAdvs:            awsAdvertisements.Items,
 		LegacyAddressPools: addressPools.Items,
 		Communities:        communities.Items,
 		PasswordSecrets:    secrets,
@@ -185,6 +192,7 @@ func (r *ConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &corev1.Node{}}, &handler.EnqueueRequestForObject{}).
 		Watches(&source.Kind{Type: &metallbv1beta1.BGPAdvertisement{}}, &handler.EnqueueRequestForObject{}).
 		Watches(&source.Kind{Type: &metallbv1beta1.L2Advertisement{}}, &handler.EnqueueRequestForObject{}).
+		Watches(&source.Kind{Type: &metallbv1beta1.AWSAdvertisement{}}, &handler.EnqueueRequestForObject{}).
 		Watches(&source.Kind{Type: &metallbv1beta1.BFDProfile{}}, &handler.EnqueueRequestForObject{}).
 		Watches(&source.Kind{Type: &metallbv1beta1.AddressPool{}}, &handler.EnqueueRequestForObject{}).
 		Watches(&source.Kind{Type: &metallbv1beta1.Community{}}, &handler.EnqueueRequestForObject{}).

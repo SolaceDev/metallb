@@ -69,6 +69,7 @@ rules:
       - bgppeers.metallb.io
       - ipaddresspools.metallb.io
       - l2advertisements.metallb.io
+      - awsadvertisements.metallb.io
       - communities.metallb.io
     verbs:
       - create
@@ -183,6 +184,14 @@ rules:
   - apiGroups:
       - metallb.io
     resources:
+      - awsadvertisements
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - metallb.io
+    resources:
       - bgpadvertisements
     verbs:
       - get
@@ -283,6 +292,14 @@ rules:
       - metallb.io
     resources:
       - l2advertisements
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - metallb.io
+    resources:
+      - awsadvertisements
     verbs:
       - get
       - list

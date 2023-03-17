@@ -256,6 +256,9 @@ speaker:
   # -- Speaker log level. Must be one of: `all`, `debug`, `info`, `warn`, `error` or `none`
   logLevel: info
   tolerateMaster: true
+  awsVpcENI:
+    enabled: false
+    securityGroupID: ""
   memberlist:
     enabled: true
     mlBindPort: 7946

@@ -147,6 +147,12 @@ spec:
       terminationGracePeriodSeconds: 0
       hostNetwork: true
       volumes:
+      {{- if .Values.awsVpcENI.enabled }}
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: ""
+      {{- end }}
       {{- if .Values.speaker.memberlist.enabled }}
         - name: memberlist
           secret:
@@ -217,6 +223,9 @@ spec:
         {{- if .Values.loadBalancerClass }}
         - --lb-class={{ .Values.loadBalancerClass }}
         {{- end }}
+        {{- if .Values.awsVpcENI.enabled }}
+        - --security-group-id={{ .Values.awsVpcENI.securityGroupID }}
+        {{- end }}
         env:
         - name: METALLB_NODE_NAME
           valueFrom:
@@ -226,6 +235,18 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: status.hostIP
+        {{- if .Values.awsVpcENI.access_key_id }}
+        - name: AWS_ACCESS_KEY_ID
+          value: "{{ .Values.awsVpcENI.access_key_id }}"
+        {{- end }}
+        {{- if .Values.awsVpcENI.secret_access_key }}
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "{{ .Values.awsVpcENI.secret_access_key }}"
+        {{- end }}
+        {{- if .Values.awsVpcENI.aws_region }}
+        - name: AWS_REGION
+          value: "{{ .Values.awsVpcENI.aws_region }}"
+        {{- end }}
         {{- if .Values.speaker.memberlist.enabled }}
         - name: METALLB_ML_BIND_ADDR
           valueFrom:
@@ -284,15 +305,23 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
         securityContext:
+        {{- if .Values.awsVpcENI.enabled }}
+          privileged: true
+        {{- else }}
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           capabilities:
             drop:
-            - ALL
+              - ALL
             add:
-            - NET_RAW
-        {{- if or .Values.speaker.frr.enabled .Values.speaker.memberlist.enabled }}
+              - NET_RAW
+        {{- end }}
+        {{- if or .Values.speaker.frr.enabled .Values.speaker.memberlist.enabled .Values.awsVpcENI.enabled}}
         volumeMounts:
+          {{- if .Values.awsVpcENI.enabled }}
+          - mountPath: /run/xtables.lock
+            name: xtables-lock
+          {{- end }}
           {{- if .Values.speaker.memberlist.enabled }}
           - name: memberlist 
             mountPath: {{ .Values.speaker.memberlist.mlSecretKeyPath }}

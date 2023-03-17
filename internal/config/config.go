@@ -40,6 +40,7 @@ type ClusterResources struct {
 	BFDProfiles        []metallbv1beta1.BFDProfile       `json:"bfdprofiles"`
 	BGPAdvs            []metallbv1beta1.BGPAdvertisement `json:"bgpadvertisements"`
 	L2Advs             []metallbv1beta1.L2Advertisement  `json:"l2advertisements"`
+	AWSAdvs            []metallbv1beta1.AWSAdvertisement `json:"awsadvertisements"`
 	LegacyAddressPools []metallbv1beta1.AddressPool      `json:"legacyaddresspools"`
 	Communities        []metallbv1beta1.Community        `json:"communities"`
 	PasswordSecrets    map[string]corev1.Secret          `json:"passwordsecrets"`
@@ -74,10 +75,11 @@ type Proto string
 const (
 	BGP    Proto = "bgp"
 	Layer2 Proto = "layer2"
+	AWS    Proto = "aws"
 )
 
 var Protocols = []Proto{
-	BGP, Layer2,
+	BGP, Layer2, AWS,
 }
 
 // Peer is the configuration of a BGP peering session.
@@ -138,6 +140,9 @@ type Pool struct {
 	// The list of L2Advertisements associated with this address pool.
 	L2Advertisements []*L2Advertisement
 
+	// The list of AWSAdvertisements associated with this address pool.
+	AWSAdvertisements []*AWSAdvertisement
+
 	cidrsPerAddresses map[string][]*net.IPNet
 
 	ServiceAllocations *ServiceAllocation
@@ -182,6 +187,12 @@ type L2Advertisement struct {
 	Interfaces []string
 	// AllInterfaces tells if all the interfaces are allowed for this advertisement
 	AllInterfaces bool
+}
+
+type AWSAdvertisement struct {
+	// The map of nodes allowed for this advertisement
+	Nodes          map[string]bool
+	SecurityGroups []string
 }
 
 // BFDProfile describes a BFD profile to be applied to a set of peers.
@@ -300,6 +311,11 @@ func poolsFor(resources ClusterResources) (*Pools, error) {
 	}
 
 	err = setL2AdvertisementsToPools(resources.Pools, resources.L2Advs, resources.Nodes, pools)
+	if err != nil {
+		return nil, err
+	}
+
+	err = setAWSAdvertisementsToPools(resources.Pools, resources.AWSAdvs, resources.Nodes, pools)
 	if err != nil {
 		return nil, err
 	}
@@ -689,6 +705,37 @@ func setL2AdvertisementsToPools(ipPools []metallbv1beta1.IPAddressPool, l2Advs [
 	return nil
 }
 
+func setAWSAdvertisementsToPools(ipPools []metallbv1beta1.IPAddressPool, awsAdvs []metallbv1beta1.AWSAdvertisement,
+	nodes []corev1.Node, ipPoolMap map[string]*Pool) error {
+	for _, awsAdv := range awsAdvs {
+		adv, err := awsAdvertisementFromCR(awsAdv, nodes)
+		if err != nil {
+			return err
+		}
+		ipPoolsSelected, err := selectedPools(ipPools, awsAdv.Spec.IPAddressPoolSelectors)
+		if err != nil {
+			return err
+		}
+		// No pool selector means select all pools
+		if len(awsAdv.Spec.IPAddressPools) == 0 && len(awsAdv.Spec.IPAddressPoolSelectors) == 0 {
+			for _, pool := range ipPoolMap {
+				if !containsAWSAdvertisement(pool.AWSAdvertisements, adv) {
+					pool.AWSAdvertisements = append(pool.AWSAdvertisements, adv)
+				}
+			}
+			continue
+		}
+		for _, poolName := range append(awsAdv.Spec.IPAddressPools, ipPoolsSelected...) {
+			if pool, ok := ipPoolMap[poolName]; ok {
+				if !containsAWSAdvertisement(pool.AWSAdvertisements, adv) {
+					pool.AWSAdvertisements = append(pool.AWSAdvertisements, adv)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func setBGPAdvertisementsToPools(ipPools []metallbv1beta1.IPAddressPool, bgpAdvs []metallbv1beta1.BGPAdvertisement,
 	nodes []corev1.Node, ipPoolMap map[string]*Pool, communities map[string]uint32) error {
 	for _, bgpAdv := range bgpAdvs {
@@ -749,6 +796,29 @@ func l2AdvertisementFromCR(crdAd metallbv1beta1.L2Advertisement, nodes []corev1.
 		l2.AllInterfaces = true
 	}
 	return l2, nil
+}
+
+func awsAdvertisementFromCR(crdAd metallbv1beta1.AWSAdvertisement, nodes []corev1.Node) (*AWSAdvertisement, error) {
+	err := validateDuplicate(crdAd.Spec.IPAddressPools, "ipAddressPools")
+	if err != nil {
+		return nil, err
+	}
+	err = validateLabelSelectorDuplicate(crdAd.Spec.IPAddressPoolSelectors, "ipAddressPoolSelectors")
+	if err != nil {
+		return nil, err
+	}
+	err = validateLabelSelectorDuplicate(crdAd.Spec.NodeSelectors, "nodeSelectors")
+	if err != nil {
+		return nil, err
+	}
+	selected, err := selectedNodes(nodes, crdAd.Spec.NodeSelectors)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to parse node selector for %s", crdAd.Name)
+	}
+	aws := &AWSAdvertisement{
+		Nodes: selected,
+	}
+	return aws, nil
 }
 
 func bgpAdvertisementFromCR(crdAd metallbv1beta1.BGPAdvertisement, communities map[string]uint32, nodes []corev1.Node) (*BGPAdvertisement, error) {
@@ -1061,6 +1131,16 @@ func containsAdvertisement(advs []*L2Advertisement, toCheck *L2Advertisement) bo
 			continue
 		}
 		if !sets.New(adv.Interfaces...).Equal(sets.New(toCheck.Interfaces...)) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func containsAWSAdvertisement(advs []*AWSAdvertisement, toCheck *AWSAdvertisement) bool {
+	for _, adv := range advs {
+		if !reflect.DeepEqual(adv.Nodes, toCheck.Nodes) {
 			continue
 		}
 		return true

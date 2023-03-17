@@ -74,6 +74,7 @@ func main() {
 		disableEpSlices   = flag.Bool("disable-epslices", false, "Disable the usage of EndpointSlices and default to Endpoints instead of relying on the autodiscovery mechanism")
 		enablePprof       = flag.Bool("enable-pprof", false, "Enable pprof profiling")
 		loadBalancerClass = flag.String("lb-class", "", "load balancer class. When enabled, metallb will handle only services whose spec.loadBalancerClass matches the given lb class")
+		securityGroupID   = flag.String("security-group-id", "", "Security Group ID to associate to the MetalLB ENI when using AWS VPC mode.")
 	)
 	flag.Parse()
 
@@ -135,11 +136,12 @@ func main() {
 
 	// Setup all clients and speakers, config decides what is being done runtime.
 	ctrl, err := newController(controllerConfig{
-		MyNode:   *myNode,
-		Logger:   logger,
-		LogLevel: logging.Level(*logLevel),
-		SList:    sList,
-		bgpType:  bgpImplementation(bgpType),
+		MyNode:          *myNode,
+		Logger:          logger,
+		LogLevel:        logging.Level(*logLevel),
+		SList:           sList,
+		bgpType:         bgpImplementation(bgpType),
+		SecurityGroupID: *securityGroupID,
 	})
 	if err != nil {
 		level.Error(logger).Log("op", "startup", "error", err, "msg", "failed to create MetalLB controller")
@@ -214,6 +216,7 @@ type controllerConfig struct {
 	// See: https://github.com/metallb/metallb/issues/152.
 	DisableLayer2      bool
 	SupportedProtocols []config.Proto
+	SecurityGroupID    string
 }
 
 func newController(cfg controllerConfig) (*controller, error) {
@@ -225,8 +228,13 @@ func newController(cfg controllerConfig) (*controller, error) {
 			bgpType:        cfg.bgpType,
 			sessionManager: newBGP(cfg.bgpType, cfg.Logger, cfg.LogLevel),
 		},
+		config.AWS: &awsController{
+			myNode:          cfg.MyNode,
+			securityGroupID: cfg.SecurityGroupID,
+		},
 	}
-	protocols := []config.Proto{config.BGP}
+
+	protocols := []config.Proto{config.BGP, config.AWS}
 
 	if !cfg.DisableLayer2 {
 		a, err := layer2.New(cfg.Logger)
@@ -251,6 +259,7 @@ func newController(cfg controllerConfig) (*controller, error) {
 	}
 	ret.announced[config.BGP] = map[string]bool{}
 	ret.announced[config.Layer2] = map[string]bool{}
+	ret.announced[config.AWS] = map[string]bool{}
 
 	return ret, nil
 }
