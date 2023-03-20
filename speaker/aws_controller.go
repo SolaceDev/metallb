@@ -55,7 +55,7 @@ func (c *awsController) SetConfig(l log.Logger, config *config.Config) error {
 }
 
 func (c *awsController) ShouldAnnounce(l log.Logger, name string, toAnnounce []net.IP, pool *config.Pool, svc *v1.Service, eps epslices.EpsOrSlices) string {
-	activeEndpointExists, activeEndpointIP := getActiveEndpointIP(eps)
+	activeEndpointExists, activeEndpointIP := getActiveLocalEndpointIP(eps, c.myNode)
 
 	if !activeEndpointExists { // no active endpoints, just return
 		level.Debug(l).Log("event", "shouldannounce", "protocol", "l2", "message", "failed no active endpoints", "service", name)
@@ -99,7 +99,7 @@ func (c *awsController) SetNode(l log.Logger, node *v1.Node) error {
 }
 
 // Returns true if at least one endpoint is active and the first endpoint's IP.
-func getActiveEndpointIP(eps epslices.EpsOrSlices) (bool, string) {
+func getActiveLocalEndpointIP(eps epslices.EpsOrSlices, localNode string) (bool, string) {
 	switch eps.Type {
 	case epslices.Eps:
 		for _, subset := range eps.EpVal.Subsets {
@@ -110,6 +110,9 @@ func getActiveEndpointIP(eps epslices.EpsOrSlices) (bool, string) {
 	case epslices.Slices:
 		for _, slice := range eps.SlicesVal {
 			for _, ep := range slice.Endpoints {
+				if *ep.NodeName != localNode {
+					continue
+				}
 				if !epslices.IsConditionReady(ep.Conditions) {
 					continue
 				}
