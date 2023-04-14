@@ -44,7 +44,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
   -ldflags "-X 'go.universe.tf/metallb/internal/version.gitCommit=${GIT_COMMIT}' -X 'go.universe.tf/metallb/internal/version.gitBranch=${GIT_BRANCH}'" \
   go.universe.tf/metallb/speaker
 
-FROM docker.io/alpine:latest
+FROM docker.io/golang:1.19.5
 
 RUN apt-get update && apt-get install -y iptables
 COPY --from=builder /build/speaker /speaker
