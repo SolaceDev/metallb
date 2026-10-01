@@ -25,37 +25,37 @@ jobs:
       GO111MODULE: on
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
       - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
+        uses: securego/gosec@826f6f4fd18b7b0cf0a76b2df1994b3eb90da8f3 # master
         with:
           args: -exclude-dir e2etest -severity medium ./...
 
       - name: Golang Vulncheck
-        uses: Templum/govulncheck-action@v0.0.9
+        uses: Templum/govulncheck-action@dfb34f5277f07e594b0e6973499b94844349e068 # v0.0.9
         with:
           skip-upload: true
 
   commitlint:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@v5
+      - uses: wagoid/commitlint-github-action@9763196e10f27aef304c9b8b660d31d97fce0f99 # v5
 
   unit-tests:
     runs-on: ubuntu-22.04
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.9.1
+        uses: styfle/cancel-workflow-action@a40b8845c0683271d9f53dfcb887a7e181d3918b # 0.9.1
         with:
           access_token: ${{ github.token }}
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
 
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3
         with:
           go-version-file: "go.mod"
           cache: true
@@ -90,12 +90,12 @@ jobs:
         image: [speaker, controller, configmaptocrs]
     steps:
       - name: Code checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
       - name: Setup docker buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@885d1462b80bc1c1c7f0b00334ad271f09369c55 # v2
 
       - name: Build and export ${{ matrix.image }}
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@1104d471370f9806843c095c1db02b5a90c5f8b6 # v3
         with:
           context: .
           tags: quay.io/metallb/${{ matrix.image }}:dev-amd64
@@ -104,7 +104,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Upload ${{ matrix.image }} artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
         with:
           retention-days: 1
           name: image-tar-${{ matrix.image }}
@@ -114,12 +114,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           # Required for chart-testing
           fetch-depth: 0
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3
         with:
           version: v3.7.1
 
@@ -177,7 +177,7 @@ jobs:
           prometheus: disabled
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
 
       - name: Install kernel modules
         run: |
@@ -232,7 +232,7 @@ jobs:
       - commitlint
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           fetch-depth: 0
 
@@ -240,7 +240,7 @@ jobs:
         uses: ./.github/workflows/composite/setup
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           fetch-depth: "0"
           path: metallb-v0.12.1
@@ -293,7 +293,7 @@ jobs:
           sudo apt-get install linux-modules-extra-$(uname -r)
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           fetch-depth: 0
 
@@ -301,14 +301,14 @@ jobs:
         uses: ./.github/workflows/composite/setup
 
       - name: Checkout Metal LB Operator
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           repository: metallb/metallb-operator
           path: metallboperator
           ref: main
 
       - name: Checkout MetalLB
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           path: metallb
           fetch-depth: 0
@@ -374,7 +374,7 @@ jobs:
           sudo apt-get install linux-modules-extra-$(uname -r)
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
         with:
           fetch-depth: 0
 

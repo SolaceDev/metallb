@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
       - name: Golang Vulncheck
-        uses: Templum/govulncheck-action@v0.0.9
+        uses: Templum/govulncheck-action@dfb34f5277f07e594b0e6973499b94844349e068 # v0.0.9
 
