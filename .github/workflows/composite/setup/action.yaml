@@ -5,11 +5,11 @@ runs:
   using: "composite"
   steps:
     - name: Cancel Previous Runs
-      uses: styfle/cancel-workflow-action@0.9.1
+      uses: styfle/cancel-workflow-action@a40b8845c0683271d9f53dfcb887a7e181d3918b # 0.9.1
       with:
         access_token: ${{ github.token }}
 
-    - uses: actions/setup-go@v3
+    - uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3
       with:
         go-version-file: "go.mod"
         cache: true
@@ -25,7 +25,7 @@ runs:
         go install github.com/onsi/ginkgo/v2/ginkgo@v2.4.0
 
     - name: Download MetalLB images
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3
       with:
         path: metallb-images
 
